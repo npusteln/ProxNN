@@ -21,9 +21,19 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print(f'device is {device}')
 
 # Download an image
-image_path = "images/393035.jpg"
-image_file = read_image(image_path)
-x_true = image_file.unsqueeze(0).to(torch.float32).to(device)/255
+img_size  = 100
+device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
+
+url = (
+    "https://culturezvous.com/wp-content/uploads/2017/10/chateau-azay-le-rideau.jpg?download=true"
+)
+x_true = dinv.utils.load_url_image(url=url, img_size=img_size).to(device)
+
+
+#image_path = "images/393035.jpg"
+#image_file = read_image(image_path)
+#x_true = image_file.unsqueeze(0).to(torch.float32).to(device)/255
+
 
 
 # Define the Forward Operator: study case of deblurring + Gaussian noise
@@ -33,11 +43,11 @@ x_true = image_file.unsqueeze(0).to(torch.float32).to(device)/255
 # (https://deepinv.github.io/deepinv/deepinv.physics.html).
 
 # Define linear operator
-filter_0 = dinv.physics.blur.gaussian_blur(sigma=(2, 0.1), angle=0.0)
+filter_0 = dinv.physics.blur.gaussian_blur(sigma=(2, 0.9), angle=0.0)
 physics = dinv.physics.Blur(filter_0, device=device, padding='reflect')
 
 # Define noise
-physics.noise_model = dinv.physics.GaussianNoise(sigma=0.01)
+physics.noise_model = dinv.physics.GaussianNoise(sigma=0.1)
 
 # Display original and degraded image
 y = physics(x_true)
@@ -63,8 +73,8 @@ param_regul    = 0.01;
 # Define algorithm parameters
 random_tensor   = torch.randn(x_true.shape).to(device)
 Anorm2          = physics.compute_norm(random_tensor)
-param_gamma     = 0.9/ Anorm2         # Set the step-size
-param_iter      = 200                 # number of iterations
+param_gamma     = 0.1/ Anorm2         # Set the step-size
+param_iter      = 500                 # number of iterations
 
 # Iterations
 xk = back.clone()
@@ -74,7 +84,7 @@ with torch.no_grad():
     for k in range(param_iter):
         xk_prev = xk.clone()
         xk = xk - param_gamma*data_fidelity.grad(xk, y, physics)
-        xk = denoiser(xk, param_gamma*param_regul)
+        xk = prior.prox(xk, sigma_denoiser = param_gamma*param_regul)
         crit[k] = torch.linalg.norm(xk.flatten()-xk_prev.flatten())
         psnr[k] = perf_psnr(x_true,xk).item()
         if k % 10 == 0: print(f"crit[{k}]: {crit[k]}")
