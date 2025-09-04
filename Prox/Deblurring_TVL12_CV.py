@@ -71,7 +71,7 @@ param_regul    = 0.03;
 
 # Iterations
 param_gamma    = 1                   # Set the step-size
-param_iter     = 1000                 # number of iterations
+param_iter     = 200                 # number of iterations
 param_tau      = 0.9/(Anorm2/2 + Lnorm2*param_gamma)
 
 xk = physics.A_adjoint(y)
@@ -86,6 +86,7 @@ for k in range(param_iter):
   vk = tmp - param_gamma*prior.prox(tmp/param_gamma,gamma=param_regul/param_gamma)
   crit[k] = data_fidelity(xk, y, physics) + param_regul*prior.fn(L(xk))
   psnr[k] = perf_psnr(x_true,xk).item()
+  if k % 10 == 0: print(f"crit[{k}]: {crit[k]}")
 
 
 # Display results
