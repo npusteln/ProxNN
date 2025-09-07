@@ -41,7 +41,7 @@ physics = dinv.physics.Tomography(angles=40, img_width=img_size, circle=True)
 physics.A_adjoint=dinv.physics.adjoint_function(physics.A,x_true.shape, device = device)
 
 # Add noise in the forward model
-physics.noise_model = dinv.physics.GaussianNoise(sigma=0.01)
+physics.noise_model = dinv.physics.PoissonNoise(gain=0.01)
 
 # Create degraded data y = A(x) and z = A'y
 y = physics(x_true).to(device)
