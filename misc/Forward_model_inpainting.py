@@ -56,7 +56,7 @@ Check the adjoint
 ------------------
 """
 
-r1 = torch.randn(1, 3, 100, 100)
+r1 = torch.randn(y.size())
 rt = physics(r1)
 r2 = torch.randn(rt.shape).to(device) 
 dot_product1 = torch.sum(r2 * physics.A(r1))
