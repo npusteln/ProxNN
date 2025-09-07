@@ -74,22 +74,28 @@ a              = 3
 xk = y.clone().to(device)
 wk = y.clone().to(device)
 uk = y.clone().to(device)
+tk = 0
 crit = 1e10*np.ones(param_iter)
 psnr = 1e10*np.ones(param_iter)
 for k in range(param_iter):
 
-  tk = (k+a-1)/a
-  tk_ = (k+a)/a
-
+  # Update Chambolle-Dossal
+  tk_ = (k+a-1)/a
+  tk = (k+a)/a
+  # Update Beck-Teboulle
+  #tk_ = tk
+  #tk = (1 + np.sqrt(1+4* tk**2))/2
   xk_prev = xk.clone()
 
   xk = wk - param_gamma*data_fidelity.grad(wk, y, physics)
   xk = prior.prox(xk, gamma =param_gamma*param_regul)
-  wk = (1-1/tk_)*xk+1/tk_*uk
-  uk = xk_prev+tk*(xk-xk_prev)
+  alphak = (tk_ - 1)/tk
+  wk = (1+alphak)*xk - alphak*xk_prev
+  wk = xk.clone()
 
   crit[k] = data_fidelity(xk, y, physics) + param_regul*prior.fn(xk)
   psnr[k] = perf_psnr(x_true,xk).item()
+  if k % 2 == 0: print(f"crit[{k}]: {crit[k]}")
 
 
 # %%
